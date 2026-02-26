@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{% if prospect %}Edit Prospect{% else %}New Prospect{% endif %}{% endblock %}
+{% block nav_prospects %}active{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/prospects" class="text-gray-500 hover:text-gray-700">&larr; Back</a>
+        <h1 class="text-2xl font-bold text-gray-900">{% if prospect %}Edit Prospect{% else %}New Prospect{% endif %}</h1>
+    </div>
+
+    <div class="card">
+        <form method="post" action="{% if prospect %}/prospects/{{ prospect['id'] }}/edit{% else %}/prospects/new{% endif %}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input type="text" name="name" value="{{ prospect['name'] if prospect else '' }}" class="input-field" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email" value="{{ prospect['email'] if prospect else '' }}" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input type="text" name="title" value="{{ prospect['title'] if prospect else '' }}" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <input type="text" name="company_name" value="{{ prospect['company_name'] if prospect else '' }}" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                    <input type="url" name="linkedin_url" value="{{ prospect['linkedin_url'] if prospect else '' }}" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="text" name="phone" value="{{ prospect['phone'] if prospect else '' }}" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Persona</label>
+                    <select name="persona_id" class="input-field">
+                        <option value="">— None —</option>
+                        {% for p in personas %}
+                        <option value="{{ p['id'] }}" {% if prospect and prospect['persona_id'] == p['id'] %}selected{% endif %}>{{ p['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea name="notes" rows="3" class="input-field">{{ prospect['notes'] if prospect else '' }}</textarea>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn-primary">{% if prospect %}Save Changes{% else %}Create Prospect{% endif %}</button>
+                <a href="/prospects" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    {% if prospect %}
+    <div class="card border-red-200">
+        <h3 class="text-sm font-medium text-red-700 mb-2">Danger Zone</h3>
+        <form method="post" action="/prospects/{{ prospect['id'] }}/delete"
+              onsubmit="return confirm('Delete this prospect?')">
+            <button type="submit" class="btn-danger btn-sm">Delete Prospect</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

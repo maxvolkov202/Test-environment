@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Research Run #{{ run['id'] }} — {{ run['company_name'] }}{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/dashboard" class="text-gray-500 hover:text-gray-700">&larr; Back to Dashboard</a>
+        <h1 class="text-2xl font-bold text-gray-900">{{ run['company_name'] }}</h1>
+        {% if run['status'] == 'completed' %}
+            <span class="badge badge-green">Completed</span>
+        {% elif run['status'] == 'running' %}
+            <span class="badge badge-blue">Running</span>
+        {% elif run['status'] == 'failed' %}
+            <span class="badge badge-red">Failed</span>
+        {% endif %}
+    </div>
+
+    {% if result_data %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Fit Score -->
+        <div class="card text-center">
+            {% set score = result_data.get('fit_score', {}) %}
+            {% set total = score.get('total', 0) %}
+            {% set rating = score.get('rating', 'Low') %}
+            <div class="text-5xl font-bold {% if rating == 'High' %}text-green-600{% elif rating == 'Medium' %}text-yellow-500{% else %}text-red-500{% endif %}">
+                {{ total }}
+            </div>
+            <div class="text-sm text-gray-500 mt-1">Fit Score</div>
+            <div class="mt-2">
+                <span class="badge {% if rating == 'High' %}badge-green{% elif rating == 'Medium' %}badge-yellow{% else %}badge-red{% endif %}">
+                    {{ rating }} Fit
+                </span>
+            </div>
+        </div>
+
+        <!-- Company Overview -->
+        <div class="card col-span-2">
+            {% set overview = result_data.get('intelligence', {}).get('company_overview', {}) %}
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Company Overview</h2>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="text-gray-500">Type:</span> {{ overview.get('company_type', '—') }}</div>
+                <div><span class="text-gray-500">AUM:</span> {{ overview.get('aum', '—') }}</div>
+                <div><span class="text-gray-500">Founded:</span> {{ overview.get('founded', '—') }}</div>
+                <div><span class="text-gray-500">Employees:</span> {{ overview.get('employees', '—') }}</div>
+                <div><span class="text-gray-500">HQ:</span> {{ overview.get('headquarters', '—') }}</div>
+                <div><span class="text-gray-500">Website:</span>
+                    {% if overview.get('website_url') %}
+                        <a href="{{ overview['website_url'] }}" target="_blank" class="text-green-600 hover:underline">{{ overview['website_url'] }}</a>
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    {% set summary = result_data.get('summary', {}) %}
+    {% if summary %}
+    <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Summary</h2>
+        {% if summary.get('overview') %}
+        <p class="text-sm text-gray-700 mb-2"><strong>Overview:</strong> {{ summary['overview'] }}</p>
+        {% endif %}
+        {% if summary.get('credit_focus') %}
+        <p class="text-sm text-gray-700 mb-2"><strong>Credit Focus:</strong> {{ summary['credit_focus'] }}</p>
+        {% endif %}
+        {% if summary.get('notable_details') %}
+        <p class="text-sm text-gray-700"><strong>Notable:</strong> {{ summary['notable_details'] }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Intelligence Details -->
+    {% set intel = result_data.get('intelligence', {}) %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Strategy -->
+        {% set strategy = intel.get('investment_strategy', {}) %}
+        <div class="card">
+            <h3 class="text-md font-semibold text-gray-900 mb-3">Investment Strategy</h3>
+            {% for field, label in [('lending_types', 'Lending Types'), ('facility_structures', 'Structures'), ('deal_types', 'Deal Types'), ('sponsor_types', 'Sponsor Focus'), ('geographic_focus', 'Geography'), ('industry_focus', 'Industries')] %}
+                {% if strategy.get(field) %}
+                <div class="mb-2">
+                    <span class="text-xs text-gray-500 uppercase">{{ label }}</span>
+                    <div class="flex flex-wrap gap-1 mt-0.5">
+                        {% for item in strategy[field] %}
+                        <span class="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded">{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Criteria -->
+        {% set criteria = intel.get('investment_criteria', {}) %}
+        <div class="card">
+            <h3 class="text-md font-semibold text-gray-900 mb-3">Investment Criteria</h3>
+            {% for field, label in [('check_sizes', 'Check Sizes'), ('deal_size_ranges', 'Deal Sizes'), ('ebitda_thresholds', 'EBITDA'), ('revenue_requirements', 'Revenue')] %}
+                {% if criteria.get(field) %}
+                <div class="mb-2">
+                    <span class="text-xs text-gray-500 uppercase">{{ label }}</span>
+                    <div class="flex flex-wrap gap-1 mt-0.5">
+                        {% for item in criteria[field] %}
+                        <span class="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    {% set activity = intel.get('recent_activity', {}) %}
+    {% if activity %}
+    <div class="card">
+        <h3 class="text-md font-semibold text-gray-900 mb-3">Recent Activity</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            {% for field, label in [('fund_raisings', 'Fund Raisings'), ('acquisitions', 'Acquisitions'), ('partnerships', 'Partnerships'), ('major_announcements', 'Announcements'), ('executive_changes', 'Executive Changes')] %}
+                {% if activity.get(field) %}
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-1">{{ label }}</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-0.5">
+                        {% for item in activity[field] %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- People -->
+    {% set people = result_data.get('person_profiles', []) %}
+    {% if people %}
+    <div class="card">
+        <h3 class="text-md font-semibold text-gray-900 mb-3">People ({{ people|length }})</h3>
+        <div class="space-y-4">
+            {% for person in people %}
+            <div class="border rounded-lg p-4" x-data="{ open: {{ 'true' if loop.first else 'false' }} }">
+                <div class="flex items-center justify-between cursor-pointer" @click="open = !open">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">
+                            {{ person.get('name', '?')[0] }}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">{{ person.get('name', 'Unknown') }}</div>
+                            <div class="text-xs text-gray-500">{{ person.get('current_title', '') }} {{ '@ ' + person.get('current_company', '') if person.get('current_company') else '' }}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {% if person.get('email') %}
+                        <a href="mailto:{{ person['email'] }}" class="text-xs text-green-600 hover:underline" @click.stop>{{ person['email'] }}</a>
+                        {% endif %}
+                        {% if person.get('linkedin_url') %}
+                        <a href="{{ person['linkedin_url'] }}" target="_blank" class="text-xs text-blue-600 hover:underline" @click.stop>LinkedIn</a>
+                        {% endif %}
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform" :class="open && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+                <div x-show="open" x-cloak class="mt-3 pt-3 border-t text-sm space-y-2">
+                    {% if person.get('bio_summary') %}
+                    <p class="text-gray-600 bg-gray-50 p-3 rounded">{{ person['bio_summary'] }}</p>
+                    {% endif %}
+                    {% if person.get('prior_experience') %}
+                    <div>
+                        <h5 class="font-medium text-gray-700 mb-1">Experience</h5>
+                        {% for exp in person['prior_experience'] %}
+                        <div class="ml-3 mb-1">
+                            <span class="font-medium">{{ exp.get('title', '') }}</span>
+                            {% if exp.get('firm') %} at {{ exp['firm'] }}{% endif %}
+                            {% if exp.get('duration') %}<span class="text-gray-400 text-xs ml-1">({{ exp['duration'] }})</span>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if person.get('interactions') %}
+                    <div>
+                        <h5 class="font-medium text-gray-700 mb-1">CRM History</h5>
+                        {% for act in person['interactions'][:5] %}
+                        <div class="ml-3 mb-1 text-xs">
+                            <span class="text-gray-400">{{ act.get('date', '') }}</span>
+                            <span class="font-medium">{{ act.get('activity_type', '') }}</span>: {{ act.get('subject', '') }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sources -->
+    {% set sources = result_data.get('source_urls', []) %}
+    {% if sources %}
+    <div class="card">
+        <h3 class="text-md font-semibold text-gray-900 mb-3">Sources</h3>
+        <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
+            {% for url in sources %}
+            <li><a href="{{ url }}" target="_blank" class="text-green-600 hover:underline">{{ url[:80] }}{% if url|length > 80 %}...{% endif %}</a></li>
+            {% endfor %}
+        </ol>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="card">
+        <p class="text-gray-500">
+            {% if run['status'] == 'running' %}
+                Research is still running. Progress: {{ run['progress_pct'] }}% — {{ run['progress_msg'] }}
+            {% elif run['status'] == 'failed' %}
+                Research failed: {{ run['progress_msg'] }}
+            {% else %}
+                No results available.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

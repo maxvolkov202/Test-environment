@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Prospects{% endblock %}
+{% block nav_prospects %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">Prospects ({{ total }})</h1>
+        <div class="flex gap-2">
+            <a href="/prospects/new" class="btn-primary btn-sm">+ Add Prospect</a>
+            <!-- CSV Import -->
+            <form action="/prospects/import/csv" method="post" enctype="multipart/form-data" class="inline-flex">
+                <label class="btn-secondary btn-sm cursor-pointer">
+                    Import CSV
+                    <input type="file" name="file" accept=".csv" class="hidden"
+                           onchange="this.form.submit()">
+                </label>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <form method="get" action="/prospects" class="flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Search</label>
+                <input type="text" name="search" value="{{ search }}" class="input-field" placeholder="Name, email, or title...">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Company</label>
+                <select name="company" class="input-field">
+                    <option value="">All Companies</option>
+                    {% for c in companies %}
+                    <option value="{{ c['company_name'] }}" {% if company == c['company_name'] %}selected{% endif %}>{{ c['company_name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Persona</label>
+                <select name="persona_id" class="input-field">
+                    <option value="">All Personas</option>
+                    {% for p in personas %}
+                    <option value="{{ p['id'] }}" {% if persona_id == p['id']|string %}selected{% endif %}>{{ p['name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-primary btn-sm">Filter</button>
+            {% if search or company or persona_id %}
+            <a href="/prospects" class="text-sm text-gray-500 hover:text-gray-700">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Prospect table -->
+    <div class="card overflow-x-auto" x-data="{ selected: [] }">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="table-header w-8">
+                        <input type="checkbox" @change="selected = $event.target.checked ? [...document.querySelectorAll('.prospect-cb')].map(c => c.value) : []">
+                    </th>
+                    <th class="table-header">Name</th>
+                    <th class="table-header">Title</th>
+                    <th class="table-header">Company</th>
+                    <th class="table-header">Persona</th>
+                    <th class="table-header">Source</th>
+                    <th class="table-header">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for p in prospects %}
+                <tr class="hover:bg-gray-50">
+                    <td class="table-cell">
+                        <input type="checkbox" class="prospect-cb" value="{{ p['id'] }}"
+                               @change="selected = [...document.querySelectorAll('.prospect-cb:checked')].map(c => c.value)">
+                    </td>
+                    <td class="table-cell">
+                        <a href="/prospects/{{ p['id'] }}" class="font-medium text-green-600 hover:text-green-800">{{ p['name'] }}</a>
+                        {% if p['email'] %}
+                        <div class="text-xs text-gray-400">{{ p['email'] }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="table-cell text-sm">{{ p['title'] or '—' }}</td>
+                    <td class="table-cell text-sm">{{ p['company_name'] or '—' }}</td>
+                    <td class="table-cell">
+                        {% if p['persona_name'] %}
+                        <span class="badge" style="background-color: {{ p['persona_color'] or '#e5e7eb' }}20; color: {{ p['persona_color'] or '#6b7280' }};">
+                            {{ p['persona_name'] }}
+                        </span>
+                        {% else %}
+                        <span class="text-xs text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-cell">
+                        <span class="badge badge-gray">{{ p['source'] }}</span>
+                    </td>
+                    <td class="table-cell">
+                        <a href="/prospects/{{ p['id'] }}" class="text-sm text-green-600 hover:text-green-800">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not prospects %}
+                <tr>
+                    <td colspan="7" class="table-cell text-center text-gray-500 py-8">
+                        No prospects found. <a href="/prospects/new" class="text-green-600 hover:underline">Add one</a> or import from CSV.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Bulk actions -->
+        <div x-show="selected.length > 0" x-cloak class="mt-4 p-3 bg-gray-50 rounded-lg flex items-center gap-4">
+            <span class="text-sm text-gray-600" x-text="selected.length + ' selected'"></span>
+            <form method="post" action="/prospects/api/bulk-assign-persona" class="flex items-center gap-2">
+                <input type="hidden" name="prospect_ids" :value="selected.join(',')">
+                <select name="persona_id" class="input-field text-sm" style="width: auto;">
+                    {% for p in personas %}
+                    <option value="{{ p['id'] }}">{{ p['name'] }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary btn-sm">Assign Persona</button>
+            </form>
+        </div>
+
+        <!-- Pagination -->
+        {% if total > per_page %}
+        <div class="mt-4 flex justify-center gap-2">
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}&search={{ search }}&company={{ company }}&persona_id={{ persona_id }}" class="btn-secondary btn-sm">Previous</a>
+            {% endif %}
+            <span class="text-sm text-gray-500 py-1 px-3">Page {{ page }} of {{ ((total - 1) // per_page) + 1 }}</span>
+            {% if page * per_page < total %}
+            <a href="?page={{ page + 1 }}&search={{ search }}&company={{ company }}&persona_id={{ persona_id }}" class="btn-secondary btn-sm">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

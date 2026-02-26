@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Prospecting Hub — Home{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Hero -->
+    <div class="text-center py-8">
+        <h1 class="text-3xl font-bold text-gray-900">SD Prospecting Hub</h1>
+        <p class="mt-2 text-gray-600">Company research, prospect enrichment, persona segmentation & outreach tracking</p>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card text-center">
+            <div class="text-3xl font-bold text-green-600">{{ total_prospects }}</div>
+            <div class="text-sm text-gray-500 mt-1">Total Prospects</div>
+        </div>
+        <div class="card text-center">
+            <div class="text-3xl font-bold text-blue-600">{{ total_runs }}</div>
+            <div class="text-sm text-gray-500 mt-1">Research Runs</div>
+        </div>
+        <div class="card text-center" id="persona-count">
+            <div class="text-3xl font-bold text-purple-600">—</div>
+            <div class="text-sm text-gray-500 mt-1">Personas</div>
+        </div>
+        <div class="card text-center" id="sequence-count">
+            <div class="text-3xl font-bold text-orange-600">—</div>
+            <div class="text-sm text-gray-500 mt-1">Active Sequences</div>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <a href="/dashboard" class="card hover:shadow-lg transition-shadow group">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600">Research Companies</h3>
+            <p class="text-sm text-gray-500 mt-1">Run the pipeline on companies — web search, intelligence extraction, fit scoring.</p>
+        </a>
+        <a href="/apollo/search" class="card hover:shadow-lg transition-shadow group">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600">Apollo Search</h3>
+            <p class="text-sm text-gray-500 mt-1">Find people and companies via Apollo.io API. Import results as prospects.</p>
+        </a>
+        <a href="/prospects" class="card hover:shadow-lg transition-shadow group">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600">Manage Prospects</h3>
+            <p class="text-sm text-gray-500 mt-1">View, filter, and segment your prospect pipeline. Assign personas and enroll in sequences.</p>
+        </a>
+    </div>
+
+    <!-- Recent research runs -->
+    {% if recent_runs %}
+    <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Research Runs</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-header">Company</th>
+                        <th class="table-header">Status</th>
+                        <th class="table-header">Progress</th>
+                        <th class="table-header">Created</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for run in recent_runs %}
+                    <tr>
+                        <td class="table-cell font-medium">{{ run['company_name'] }}</td>
+                        <td class="table-cell">
+                            {% if run['status'] == 'completed' %}
+                                <span class="badge badge-green">Completed</span>
+                            {% elif run['status'] == 'running' %}
+                                <span class="badge badge-blue">Running</span>
+                            {% elif run['status'] == 'failed' %}
+                                <span class="badge badge-red">Failed</span>
+                            {% else %}
+                                <span class="badge badge-gray">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="table-cell">{{ run['progress_pct'] }}%</td>
+                        <td class="table-cell text-gray-500">{{ run['created_at'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

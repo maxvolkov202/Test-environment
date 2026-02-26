@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Research Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">Research Dashboard</h1>
+    </div>
+
+    <!-- New research form -->
+    <div class="card" x-data="researchForm()">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">New Research Run</h2>
+        <form @submit.prevent="startResearch">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                    <input type="text" x-model="companyName" class="input-field" placeholder="e.g. Ares Management" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">People (comma-separated)</label>
+                    <input type="text" x-model="people" class="input-field" placeholder="e.g. John Smith, Jane Doe">
+                </div>
+            </div>
+            <div class="mt-4 flex items-center gap-4">
+                <button type="submit" class="btn-primary" :disabled="running">
+                    <span x-show="!running">Start Research</span>
+                    <span x-show="running">Running...</span>
+                </button>
+                <div x-show="running" class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="animate-spin h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span x-text="progressMsg"></span>
+                    <span x-text="progressPct + '%'" class="font-mono"></span>
+                </div>
+            </div>
+        </form>
+
+        <!-- Progress bar -->
+        <div x-show="running || progressPct === 100" x-cloak class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="bg-green-600 h-2.5 rounded-full transition-all duration-300"
+                     :style="'width: ' + progressPct + '%'"></div>
+            </div>
+        </div>
+
+        <!-- Result link -->
+        <div x-show="completed" x-cloak class="mt-4">
+            <a :href="'/dashboard/run/' + runId" class="text-green-600 hover:text-green-800 font-medium">
+                View Results &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Past runs table -->
+    <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Research History</h2>
+        {% if runs %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-header">ID</th>
+                        <th class="table-header">Company</th>
+                        <th class="table-header">Status</th>
+                        <th class="table-header">Progress</th>
+                        <th class="table-header">Started</th>
+                        <th class="table-header">Completed</th>
+                        <th class="table-header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for run in runs %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="table-cell font-mono text-gray-500">#{{ run['id'] }}</td>
+                        <td class="table-cell font-medium">{{ run['company_name'] }}</td>
+                        <td class="table-cell">
+                            {% if run['status'] == 'completed' %}
+                                <span class="badge badge-green">Completed</span>
+                            {% elif run['status'] == 'running' %}
+                                <span class="badge badge-blue">Running</span>
+                            {% elif run['status'] == 'failed' %}
+                                <span class="badge badge-red">Failed</span>
+                            {% else %}
+                                <span class="badge badge-gray">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="table-cell">
+                            <div class="flex items-center gap-2">
+                                <div class="w-20 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-green-600 h-1.5 rounded-full" style="width: {{ run['progress_pct'] }}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">{{ run['progress_pct'] }}%</span>
+                            </div>
+                        </td>
+                        <td class="table-cell text-gray-500 text-xs">{{ run['started_at'] or '—' }}</td>
+                        <td class="table-cell text-gray-500 text-xs">{{ run['completed_at'] or '—' }}</td>
+                        <td class="table-cell">
+                            {% if run['status'] == 'completed' %}
+                            <a href="/dashboard/run/{{ run['id'] }}" class="text-green-600 hover:text-green-800 text-sm font-medium">View</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">No research runs yet. Start one above.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function researchForm() {
+    return {
+        companyName: '',
+        people: '',
+        running: false,
+        completed: false,
+        runId: null,
+        progressPct: 0,
+        progressMsg: '',
+
+        async startResearch() {
+            if (!this.companyName.trim()) return;
+            this.running = true;
+            this.completed = false;
+            this.progressPct = 0;
+            this.progressMsg = 'Starting...';
+
+            const peopleList = this.people ? this.people.split(',').map(p => p.trim()).filter(Boolean) : [];
+
+            const resp = await fetch('/api/research', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({company_name: this.companyName, people: peopleList}),
+            });
+            const data = await resp.json();
+            this.runId = data.run_id;
+
+            // Connect to SSE stream
+            const evtSource = new EventSource(`/api/research/${this.runId}/stream`);
+            evtSource.addEventListener('progress', (e) => {
+                const d = JSON.parse(e.data);
+                this.progressPct = d.progress_pct;
+                this.progressMsg = d.progress_msg;
+                if (d.status === 'completed' || d.status === 'failed') {
+                    evtSource.close();
+                    this.running = false;
+                    this.completed = d.status === 'completed';
+                    if (this.completed) {
+                        // Refresh the page to show in history
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }
+            });
+            evtSource.onerror = () => {
+                evtSource.close();
+                this.running = false;
+            };
+        }
+    };
+}
+</script>
+{% endblock %}

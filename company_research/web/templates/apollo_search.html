@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Apollo Search{% endblock %}
+{% block nav_apollo %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Apollo.io Search</h1>
+
+    {% if not configured %}
+    <div class="card border-yellow-200 bg-yellow-50">
+        <p class="text-yellow-800 text-sm">Apollo API key not configured. Set <code>APOLLO_API_KEY</code> in your <code>.env</code> file.</p>
+    </div>
+    {% endif %}
+
+    {% if error is defined and error %}
+    <div class="card border-red-200 bg-red-50">
+        <p class="text-red-800 text-sm">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Search tabs -->
+    <div x-data="{ tab: '{{ search_type or 'people' }}' }">
+        <div class="flex border-b border-gray-200 mb-4">
+            <button @click="tab = 'people'" :class="tab === 'people' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-2 px-4 border-b-2 font-medium text-sm transition-colors">
+                Search People
+            </button>
+            <button @click="tab = 'organizations'" :class="tab === 'organizations' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-2 px-4 border-b-2 font-medium text-sm transition-colors">
+                Search Organizations
+            </button>
+        </div>
+
+        <!-- People search form -->
+        <div x-show="tab === 'people'" class="card">
+            <form method="post" action="/apollo/search/people" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Job Titles (comma-separated)</label>
+                        <input type="text" name="titles" value="{{ query_params.get('titles', '') }}"
+                               class="input-field" placeholder="e.g. Portfolio Manager, Investment Director">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                        <input type="text" name="company" value="{{ query_params.get('company', '') }}"
+                               class="input-field" placeholder="e.g. Ares Management">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Locations (comma-separated)</label>
+                        <input type="text" name="locations" value="{{ query_params.get('locations', '') }}"
+                               class="input-field" placeholder="e.g. New York, United States">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Seniority (comma-separated)</label>
+                        <input type="text" name="seniorities" value="{{ query_params.get('seniorities', '') }}"
+                               class="input-field" placeholder="e.g. c_suite, vp, director">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" {% if not configured %}disabled{% endif %}>Search People</button>
+            </form>
+        </div>
+
+        <!-- Organization search form -->
+        <div x-show="tab === 'organizations'" x-cloak class="card">
+            <form method="post" action="/apollo/search/organizations" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                        <input type="text" name="name" value="{{ query_params.get('name', '') }}"
+                               class="input-field" placeholder="e.g. Ares Management">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Locations</label>
+                        <input type="text" name="locations" value="{{ query_params.get('locations', '') }}"
+                               class="input-field" placeholder="e.g. New York, United States">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+                        <input type="text" name="keywords" value="{{ query_params.get('keywords', '') }}"
+                               class="input-field" placeholder="e.g. private credit, direct lending">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Employee Range</label>
+                        <select name="employees" class="input-field">
+                            <option value="">Any size</option>
+                            <option value="1,10" {% if query_params.get('employees') == '1,10' %}selected{% endif %}>1-10</option>
+                            <option value="11,50" {% if query_params.get('employees') == '11,50' %}selected{% endif %}>11-50</option>
+                            <option value="51,200" {% if query_params.get('employees') == '51,200' %}selected{% endif %}>51-200</option>
+                            <option value="201,500" {% if query_params.get('employees') == '201,500' %}selected{% endif %}>201-500</option>
+                            <option value="501,1000" {% if query_params.get('employees') == '501,1000' %}selected{% endif %}>501-1000</option>
+                            <option value="1001,5000" {% if query_params.get('employees') == '1001,5000' %}selected{% endif %}>1001-5000</option>
+                            <option value="5001,10000" {% if query_params.get('employees') == '5001,10000' %}selected{% endif %}>5001+</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" {% if not configured %}disabled{% endif %}>Search Organizations</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    {% if results %}
+    {% if search_type == 'people' and results.people %}
+    <div class="card" x-data="{ selectedIds: [], allPeople: {{ results.people | tojson }} }">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">People Results ({{ results.total_entries }} total)</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-header w-8">
+                            <input type="checkbox" @change="selectedIds = $event.target.checked ? allPeople.map(p => p.id) : []">
+                        </th>
+                        <th class="table-header">Name</th>
+                        <th class="table-header">Title</th>
+                        <th class="table-header">Company</th>
+                        <th class="table-header">Email</th>
+                        <th class="table-header">Location</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for p in results.people %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="table-cell">
+                            <input type="checkbox" :checked="selectedIds.includes('{{ p.id }}')"
+                                   @change="$event.target.checked ? selectedIds.push('{{ p.id }}') : selectedIds = selectedIds.filter(x => x !== '{{ p.id }}')">
+                        </td>
+                        <td class="table-cell">
+                            <div class="font-medium text-gray-900">{{ p.full_name }}</div>
+                            {% if p.linkedin_url %}
+                            <a href="{{ p.linkedin_url }}" target="_blank" class="text-xs text-blue-500 hover:underline">LinkedIn</a>
+                            {% endif %}
+                        </td>
+                        <td class="table-cell text-sm">{{ p.title or '—' }}</td>
+                        <td class="table-cell text-sm">{{ p.organization_name or '—' }}</td>
+                        <td class="table-cell text-sm">
+                            {% if p.email %}
+                            <span class="{% if p.email_status == 'verified' %}text-green-600{% else %}text-gray-500{% endif %}">
+                                {{ p.email }}
+                            </span>
+                            {% if p.email_status %}<span class="text-xs text-gray-400 ml-1">({{ p.email_status }})</span>{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="table-cell text-sm text-gray-500">
+                            {{ [p.city, p.state, p.country] | select | join(', ') }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Import button -->
+        <div x-show="selectedIds.length > 0" x-cloak class="mt-4 p-3 bg-green-50 rounded-lg">
+            <form method="post" action="/apollo/import-people">
+                <input type="hidden" name="selected_ids" :value="selectedIds.join(',')">
+                <input type="hidden" name="people_json" value='{{ results.people | tojson }}'>
+                <button type="submit" class="btn-primary btn-sm">
+                    Import <span x-text="selectedIds.length"></span> to Prospects
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% elif search_type == 'organizations' and results.organizations %}
+    <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Organization Results ({{ results.total_entries }} total)</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-header">Name</th>
+                        <th class="table-header">Industry</th>
+                        <th class="table-header">Employees</th>
+                        <th class="table-header">Location</th>
+                        <th class="table-header">Website</th>
+                        <th class="table-header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for o in results.organizations %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="table-cell font-medium">{{ o.name }}</td>
+                        <td class="table-cell text-sm">{{ o.industry or '—' }}</td>
+                        <td class="table-cell text-sm">{{ o.estimated_num_employees or '—' }}</td>
+                        <td class="table-cell text-sm text-gray-500">
+                            {{ [o.city, o.state, o.country] | select | join(', ') }}
+                        </td>
+                        <td class="table-cell text-sm">
+                            {% if o.website_url %}
+                            <a href="{{ o.website_url }}" target="_blank" class="text-green-600 hover:underline">{{ o.website_url[:40] }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="table-cell">
+                            <form method="post" action="/apollo/search/people" class="inline">
+                                <input type="hidden" name="company" value="{{ o.name }}">
+                                <button type="submit" class="text-sm text-green-600 hover:text-green-800">Find People</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+        <p class="text-gray-500 text-sm">No results found. Try adjusting your search criteria.</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

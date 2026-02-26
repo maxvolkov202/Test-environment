@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ prospect['name'] }} — Prospect{% endblock %}
+{% block nav_prospects %}active{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <a href="/prospects" class="text-gray-500 hover:text-gray-700">&larr; Back</a>
+            <h1 class="text-2xl font-bold text-gray-900">{{ prospect['name'] }}</h1>
+            {% if prospect['persona_name'] %}
+            <span class="badge" style="background-color: {{ prospect['persona_color'] or '#e5e7eb' }}20; color: {{ prospect['persona_color'] or '#6b7280' }};">
+                {{ prospect['persona_name'] }}
+            </span>
+            {% endif %}
+        </div>
+        <a href="/prospects/{{ prospect['id'] }}/edit" class="btn-secondary btn-sm">Edit</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Contact Info -->
+        <div class="card">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Contact Information</h2>
+            <dl class="space-y-2 text-sm">
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">Title</dt>
+                    <dd class="text-gray-900">{{ prospect['title'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">Company</dt>
+                    <dd class="text-gray-900">{{ prospect['company_name'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">Email</dt>
+                    <dd>
+                        {% if prospect['email'] %}
+                        <a href="mailto:{{ prospect['email'] }}" class="text-green-600 hover:underline">{{ prospect['email'] }}</a>
+                        {% else %}—{% endif %}
+                    </dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">Phone</dt>
+                    <dd class="text-gray-900">{{ prospect['phone'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">LinkedIn</dt>
+                    <dd>
+                        {% if prospect['linkedin_url'] %}
+                        <a href="{{ prospect['linkedin_url'] }}" target="_blank" class="text-blue-600 hover:underline">Profile</a>
+                        {% else %}—{% endif %}
+                    </dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-24 text-gray-500">Source</dt>
+                    <dd><span class="badge badge-gray">{{ prospect['source'] }}</span></dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Metadata</h2>
+            <dl class="space-y-2 text-sm">
+                <div class="flex">
+                    <dt class="w-28 text-gray-500">Apollo ID</dt>
+                    <dd class="text-gray-900">{{ prospect['apollo_id'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-28 text-gray-500">SF Contact</dt>
+                    <dd class="text-gray-900">{{ prospect['sf_contact_id'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-28 text-gray-500">SF Lead</dt>
+                    <dd class="text-gray-900">{{ prospect['sf_lead_id'] or '—' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-28 text-gray-500">Created</dt>
+                    <dd class="text-gray-900">{{ prospect['created_at'] }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="w-28 text-gray-500">Updated</dt>
+                    <dd class="text-gray-900">{{ prospect['updated_at'] }}</dd>
+                </div>
+            </dl>
+            {% if prospect['notes'] %}
+            <div class="mt-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Notes</h3>
+                <p class="text-sm text-gray-600 bg-gray-50 rounded p-3">{{ prospect['notes'] }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sequence Enrollments -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Sequence Enrollments</h2>
+            <a href="/sequences?enroll={{ prospect['id'] }}" class="btn-primary btn-sm">Enroll in Sequence</a>
+        </div>
+        {% if enrollments %}
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="table-header">Sequence</th>
+                    <th class="table-header">Current Step</th>
+                    <th class="table-header">Status</th>
+                    <th class="table-header">Started</th>
+                    <th class="table-header">Next Step At</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for e in enrollments %}
+                <tr>
+                    <td class="table-cell font-medium">{{ e['template_name'] }}</td>
+                    <td class="table-cell">Step {{ e['current_step'] }}</td>
+                    <td class="table-cell">
+                        {% if e['status'] == 'active' %}
+                            <span class="badge badge-green">Active</span>
+                        {% elif e['status'] == 'paused' %}
+                            <span class="badge badge-yellow">Paused</span>
+                        {% elif e['status'] == 'completed' %}
+                            <span class="badge badge-blue">Completed</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-cell text-xs text-gray-500">{{ e['started_at'] }}</td>
+                    <td class="table-cell text-xs text-gray-500">{{ e['next_step_at'] or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-sm text-gray-500">Not enrolled in any sequences.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

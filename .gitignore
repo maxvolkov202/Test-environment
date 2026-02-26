@@ -1,0 +1,41 @@
+# SQLite databases (large, regeneratable)
+*.db
+*.db-wal
+*.db-shm
+
+# Hidden db files
+.research_cache.db
+
+# Generated HTML output (build artifacts, not source)
+SD_Intelligence_Dashboard_*.html
+dashboard_*.html
+test_*.html
+
+# Test/input data files (may contain PII)
+apollo-contacts-export.csv
+test_input.csv
+*.csv
+
+# Generated test JSON
+Street\ Diligence*.json
+
+# Environment secrets
+.env
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Claude Code local settings (machine-specific)
+.claude/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+nul
